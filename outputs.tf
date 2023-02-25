@@ -1,6 +1,6 @@
 locals {
   samvera_stack_hostname = join(".", [aws_service_discovery_service.samvera_stack.name, aws_service_discovery_private_dns_namespace.private_service_discovery.name])
-  samvera_stack_base_url = "https://${local.samvera_stack_hostname}"
+  samvera_stack_base_url = "http://${local.samvera_stack_hostname}"
 }
 
 output "db" {
@@ -29,5 +29,5 @@ output "solr_url" {
 }
 
 output "zookeeper_endpoint" {
-  value = "${local.samvera_stack_hostname}"
+  value = "${local.samvera_stack_hostname}:9983"
 }

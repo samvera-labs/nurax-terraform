@@ -1,3 +1,8 @@
+resource "aws_cloudwatch_log_group" "samvera_stack_logs" {
+  name                = "/ecs/samvera-stack"
+  retention_in_days   = 3
+}
+
 resource "aws_security_group" "samvera_stack_service" {
   name        = "${var.namespace}-solr-service"
   description = "Fedora/Solr Service Security Group"
@@ -152,6 +157,14 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         { hostPort = 8080, containerPort = 8080 }
       ]
       readonlyRootFilesystem = false
+      logConfiguration = {
+        logDriver = "awslogs"
+        options   = {
+          awslogs-group         = aws_cloudwatch_log_group.samvera_stack_logs.name
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "fcrepo"
+        }
+      }
       healthCheck = {
         command  = ["CMD-SHELL", "wget -q -O /dev/null --method=OPTIONS http://localhost:8080/rest/"]
         interval = 30
@@ -177,6 +190,14 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         { sourceVolume = "solr-backup", containerPath = "/data/backup" }
       ]
       readonlyRootFilesystem = false
+      logConfiguration = {
+        logDriver = "awslogs"
+        options   = {
+          awslogs-group         = aws_cloudwatch_log_group.samvera_stack_logs.name
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "solrcloud"
+        }
+      }
       healthCheck = {
         command  = ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8983/solr/"]
         interval = 30
@@ -219,7 +240,11 @@ resource "aws_ecs_service" "samvera_stack" {
   }
 
   network_configuration {
-    security_groups  = [aws_security_group.samvera_stack_service.id]
+    security_groups  = [
+      module.vpc.default_security_group_id,
+      aws_security_group.db_client.id,
+      aws_security_group.samvera_stack_service.id
+    ]
     subnets          = module.vpc.public_subnets
     assign_public_ip = true
   }

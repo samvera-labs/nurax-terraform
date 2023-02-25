@@ -38,12 +38,11 @@ resource "aws_security_group" "endpoint_access" {
     protocol    = "tcp"
     cidr_blocks = [var.cidr_block]
   }
+}
 
-  }
-
-resource "aws_security_group" "internal_http" {
-  name        = "${var.namespace}-exhibitor-lb"
-  description = "Local VPC HTTP Security Group"
+resource "aws_security_group" "ssh" {
+  name        = "${var.namespace}-ssh"
+  description = "Security Group for public-facing SSH"
   vpc_id      = module.vpc.vpc_id
 
   egress {
@@ -54,10 +53,10 @@ resource "aws_security_group" "internal_http" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
