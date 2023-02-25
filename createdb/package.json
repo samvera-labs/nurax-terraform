@@ -1,0 +1,14 @@
+{
+  "name": "createdb",
+  "version": "1.0.0",
+  "description": "Use Lambda to create a database schema inside a VPC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael B. Klein <mbklein@gmail.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "pg": "^8.9.0"
+  }
+}
