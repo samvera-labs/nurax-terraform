@@ -4,7 +4,7 @@ resource "aws_cloudwatch_log_group" "samvera_stack_logs" {
 }
 
 resource "aws_security_group" "samvera_stack_service" {
-  name        = "${var.namespace}-solr-service"
+  name        = "${var.namespace}-samvera-stack"
   description = "Fedora/Solr Service Security Group"
   vpc_id      = module.vpc.vpc_id
 }
@@ -19,7 +19,7 @@ resource "aws_security_group_rule" "samvera_stack_service_egress" {
 }
 
 resource "aws_security_group_rule" "samvera_stack_service_ingress" {
-  for_each            = toset(["8080", "8983", "9983"])
+  for_each            = toset(["2181", "8080", "8983", "9983"])
   security_group_id   = aws_security_group.samvera_stack_service.id
   type                = "ingress"
   from_port           = each.key
@@ -97,27 +97,59 @@ locals {
   }
 }
 
-resource "aws_efs_file_system" "solr_backup_volume" {
+resource "aws_efs_file_system" "samvera_stack_data_volume" {
   encrypted      = false
 }
 
-resource "aws_efs_mount_target" "solr_backup_mount_target" {
+resource "aws_efs_access_point" "fcrepo_data" {
+  file_system_id    = aws_efs_file_system.samvera_stack_data_volume.id
+  posix_user {
+    uid = 0
+    gid = 0
+  }
+  root_directory {
+    path = "/fcrepo-data"
+    creation_info {
+      owner_uid   = 0
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
+resource "aws_efs_access_point" "solr_data" {
+  file_system_id    = aws_efs_file_system.samvera_stack_data_volume.id
+  posix_user {
+    uid = 8983
+    gid = 0
+  }
+  root_directory {
+    path = "/solr-data"
+    creation_info {
+      owner_uid   = 8983
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
+resource "aws_efs_mount_target" "samvera_stack_data_mount_target" {
   for_each          = toset(module.vpc.private_subnets)
-  file_system_id    = aws_efs_file_system.solr_backup_volume.id
+  file_system_id    = aws_efs_file_system.samvera_stack_data_volume.id
   security_groups   = [
-    aws_security_group.solr_backup_access.id
+    aws_security_group.samvera_stack_data_access.id
   ]
   subnet_id         = each.key
 }
 
-resource "aws_security_group" "solr_backup_access" {
-  name        = "${var.namespace}-solr-backup"
-  description = "Solr Backup Volume Security Group"
+resource "aws_security_group" "samvera_stack_data_access" {
+  name        = "${var.namespace}-stack-data"
+  description = "Samvera Stack Data Volume Security Group"
   vpc_id      = module.vpc.vpc_id
 }
 
-resource "aws_security_group_rule" "solr_backup_egress" {
-  security_group_id   = aws_security_group.solr_backup_access.id
+resource "aws_security_group_rule" "samvera_stack_data_egress" {
+  security_group_id   = aws_security_group.samvera_stack_data_access.id
   type                = "egress"
   from_port           = 0
   to_port             = 65535
@@ -125,8 +157,8 @@ resource "aws_security_group_rule" "solr_backup_egress" {
   cidr_blocks         = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "solr_backup_ingress" {
-  security_group_id           = aws_security_group.solr_backup_access.id
+resource "aws_security_group_rule" "samvera_stack_data_ingress" {
+  security_group_id           = aws_security_group.samvera_stack_data_access.id
   type                        = "ingress"
   from_port                   = 2049
   to_port                     = 2049
@@ -156,6 +188,9 @@ resource "aws_ecs_task_definition" "samvera_stack" {
       portMappings = [
         { hostPort = 8080, containerPort = 8080 }
       ]
+      mountPoints = [
+        { sourceVolume = "fcrepo-data", containerPath = "/data" }
+      ]
       readonlyRootFilesystem = false
       logConfiguration = {
         logDriver = "awslogs"
@@ -173,21 +208,19 @@ resource "aws_ecs_task_definition" "samvera_stack" {
       }
     },
     {
-      name                = "solrcloud",
+      name                = "solr",
       image               = "${local.ecs_registry_url}/solr:8.11-slim"
       essential           = true
-      cpu                 = var.solrcloud_cpu
-      command             = ["solr", "-f", "-cloud"]
+      cpu                 = var.solr_cpu
+      command             = ["solr", "-f"]
       environment = [
-        { name = "KAFKA_OPTS",      value = "-Dzookeeper.4lw.commands.whitelist=*" },
-        { name = "SOLR_HEAP",       value = "${var.solrcloud_cpu * 0.9765625}m" }
+        { name = "SOLR_HEAP",       value = "${var.solr_cpu * 0.9765625}m" }
       ]
       portMappings = [
-        { hostPort = 8983, containerPort = 8983 },
-        { hostPort = 9983, containerPort = 9983 }
+        { hostPort = 8983, containerPort = 8983 }
       ]
       mountPoints = [
-        { sourceVolume = "solr-backup", containerPath = "/data/backup" }
+        { sourceVolume = "solr-data", containerPath = "/var/solr/data" }
       ]
       readonlyRootFilesystem = false
       logConfiguration = {
@@ -195,7 +228,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         options   = {
           awslogs-group         = aws_cloudwatch_log_group.samvera_stack_logs.name
           awslogs-region        = data.aws_region.current.name
-          awslogs-stream-prefix = "solrcloud"
+          awslogs-stream-prefix = "solr"
         }
       }
       healthCheck = {
@@ -209,12 +242,28 @@ resource "aws_ecs_task_definition" "samvera_stack" {
 
   volume {
     name = "fcrepo-data"
+    efs_volume_configuration {
+      file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
+#      root_directory        = "/fcrepo-data"
+      transit_encryption        = "ENABLED"
+      transit_encryption_port   = 2888
+      authorization_config {
+        access_point_id = aws_efs_access_point.fcrepo_data.id
+      }
+    }
   }
 
   volume {
-    name = "solr-backup"
+    name        = "solr-data"
     efs_volume_configuration {
-      file_system_id = aws_efs_file_system.solr_backup_volume.id
+      file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
+#      root_directory        = "/solr-data"
+      transit_encryption        = "ENABLED"
+      transit_encryption_port   = 2889
+
+      authorization_config {
+        access_point_id = aws_efs_access_point.solr_data.id
+      }
     }
   }
 
@@ -222,7 +271,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
   execution_role_arn       = aws_iam_role.task_execution_role.arn
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = var.fcrepo_cpu + var.solrcloud_cpu
+  cpu                      = var.fcrepo_cpu + var.solr_cpu
   memory                   = var.samvera_stack_memory
 }
 

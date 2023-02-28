@@ -52,13 +52,13 @@ variable "public_subnets" {
 }
 
 variable "samvera_stack_memory" {
-  description   = "Total memory allocated for Fedora and SolrCloud"
+  description   = "Total memory allocated for Fedora and solr"
   type          = number
   default       = 4096
 }
 
-variable "solrcloud_cpu" {
-  description   = "CPU shares reserved for SolrCloud"
+variable "solr_cpu" {
+  description   = "CPU shares reserved for solr"
   type          = number
   default       = 1280
 }
