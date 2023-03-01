@@ -1,12 +1,5 @@
 data "aws_iam_policy_document" "nurax_role_permissions" {
   statement {
-    sid       = "configuration"
-    effect    = "Allow"
-    actions   = [ "secretsmanager:Get*" ]
-    resources = ["arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.id}:secret:config/nurax-*"]
-  }
-
-  statement {
     sid = "email"
     effect = "Allow"
     actions = [
@@ -45,6 +38,26 @@ resource "aws_security_group" "nurax_load_balancer" {
   }
 }
 
+resource "aws_security_group" "nurax" {
+  name    = var.namespace
+  vpc_id  = module.vpc.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description       = "HTTP in"
+    from_port         = 3000
+    to_port           = 3000
+    protocol          = "tcp"
+    security_groups   = [aws_security_group.nurax_load_balancer.id]
+  }
+}
+
 resource "aws_iam_role" "nurax_role" {
   name               = "${var.namespace}-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
@@ -63,4 +76,41 @@ resource "aws_iam_role_policy_attachment" "nurax_role_policy" {
 resource "aws_iam_role_policy_attachment" "nurax_ecs_exec_command" {
   role       = aws_iam_role.nurax_role.id
   policy_arn = aws_iam_policy.ecs_exec_command.arn
+}
+
+resource "aws_efs_file_system" "nurax_data_volume" {
+  encrypted      = false
+}
+
+resource "aws_efs_mount_target" "nurax_data_mount_target" {
+  for_each          = toset(module.vpc.private_subnets)
+  file_system_id    = aws_efs_file_system.nurax_data_volume.id
+  security_groups   = [
+    aws_security_group.nurax_data_access.id
+  ]
+  subnet_id         = each.key
+}
+
+resource "aws_security_group" "nurax_data_access" {
+  name        = "${var.namespace}-app-data"
+  description = "Nurax Application Data Volume Security Group"
+  vpc_id      = module.vpc.vpc_id
+}
+
+resource "aws_security_group_rule" "nurax_data_egress" {
+  security_group_id   = aws_security_group.nurax_data_access.id
+  type                = "egress"
+  from_port           = 0
+  to_port             = 65535
+  protocol            = -1
+  cidr_blocks         = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "nurax_data_ingress" {
+  security_group_id           = aws_security_group.nurax_data_access.id
+  type                        = "ingress"
+  from_port                   = 2049
+  to_port                     = 2049
+  protocol                    = "tcp"
+  source_security_group_id    = aws_security_group.nurax.id
 }

@@ -22,6 +22,11 @@ variable "fcrepo_cpu" {
   default       = 768
 }
 
+variable "honeybadger_api_key" {
+  type    = string
+  default = ""
+}
+
 variable "hosted_zone_name" {
   description   = "Domain name the stack domain will be created under"
   type          = string

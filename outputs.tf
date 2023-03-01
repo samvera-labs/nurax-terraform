@@ -27,7 +27,3 @@ output "redis_endpoint" {
 output "solr_url" {
   value = "${local.samvera_stack_base_url}:8983/solr"
 }
-
-output "zookeeper_endpoint" {
-  value = "${local.samvera_stack_hostname}:9983"
-}
