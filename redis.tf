@@ -3,11 +3,6 @@ resource "aws_security_group" "redis_service" {
   vpc_id = module.vpc.vpc_id
 }
 
-resource "aws_security_group" "redis_client" {
-  name   = "${var.namespace}-redis-client"
-  vpc_id = module.vpc.vpc_id
-} 
-
 resource "aws_security_group_rule" "redis_egress" {
   security_group_id = aws_security_group.redis_service.id
   type              = "egress"
@@ -18,12 +13,12 @@ resource "aws_security_group_rule" "redis_egress" {
 }
 
 resource "aws_security_group_rule" "redis_ingress" {
-  security_group_id           = aws_security_group.redis_service.id
-  type                        = "ingress"
-  from_port                   = "6379"
-  to_port                     = "6379"
-  protocol                    = "tcp"
-  source_security_group_id    = aws_security_group.redis_client.id
+  security_group_id   = aws_security_group.redis_service.id
+  type                = "ingress"
+  from_port           = "6379"
+  to_port             = "6379"
+  protocol            = "tcp"
+  cidr_blocks         = [module.vpc.vpc_cidr_block]
 }
 
 resource "aws_elasticache_subnet_group" "redis" {

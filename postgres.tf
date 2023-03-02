@@ -22,18 +22,12 @@ resource "aws_security_group_rule" "db_egress" {
 }
 
 resource "aws_security_group_rule" "db_ingress" {
-  type                        = "ingress"
-  security_group_id           = aws_security_group.db.id
-  from_port                   = aws_db_instance.db.port
-  to_port                     = aws_db_instance.db.port
-  protocol                    = "tcp"
-  source_security_group_id    = aws_security_group.db_client.id
-}
-
-resource "aws_security_group" "db_client" {
-  name          = "${var.namespace}-db-client"
-  description   = "RDS Client Security Group"
-  vpc_id        = module.vpc.vpc_id
+  type                = "ingress"
+  security_group_id   = aws_security_group.db.id
+  from_port           = aws_db_instance.db.port
+  to_port             = aws_db_instance.db.port
+  protocol            = "tcp"
+  cidr_blocks         = [module.vpc.vpc_cidr_block]
 }
 
 resource "aws_db_subnet_group" "db_subnet_group" {
@@ -95,8 +89,7 @@ module "create_db_lambda" {
 
   vpc_subnet_ids            = module.vpc.private_subnets
   vpc_security_group_ids    = [
-    module.vpc.default_security_group_id, 
-    aws_security_group.db_client.id
+    module.vpc.default_security_group_id
   ]
   attach_network_policy     = true
 }

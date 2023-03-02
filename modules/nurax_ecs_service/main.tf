@@ -21,7 +21,7 @@ resource "aws_lb" "this_load_balancer" {
   load_balancer_type = "application"
 
   subnets         = var.public_subnets
-  security_groups = var.security_group_ids
+  security_groups = [var.lb_security_group_id]
 }
 
 resource "aws_lb_listener" "this_lb_listener_http" {

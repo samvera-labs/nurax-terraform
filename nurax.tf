@@ -78,6 +78,11 @@ resource "aws_iam_role_policy_attachment" "nurax_ecs_exec_command" {
   policy_arn = aws_iam_policy.ecs_exec_command.arn
 }
 
+resource "aws_iam_role_policy_attachment" "nurax_ecs_launch_task" {
+  role       = aws_iam_role.nurax_role.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
 resource "aws_efs_file_system" "nurax_data_volume" {
   encrypted      = false
 }

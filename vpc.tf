@@ -73,5 +73,11 @@ module "endpoints" {
       service           = "s3"
       service_type      = "Gateway"
     }
+
+    ssmmessages = {
+      service             = "ssmmessages"
+      subnet_ids          = module.vpc.private_subnets
+      private_dns_enabled = true
+    }
   }
 }

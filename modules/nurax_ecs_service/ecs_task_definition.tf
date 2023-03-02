@@ -111,8 +111,20 @@ resource "aws_ecs_service" "this_service" {
   }
 
   network_configuration {
-    subnets          = var.private_subnets
+    subnets          = var.public_subnets
     security_groups  = var.security_group_ids
-    assign_public_ip = false
+    assign_public_ip = true
+  }
+}
+
+resource "aws_route53_record" "this_dns_record" {
+  zone_id   = var.public_zone_id
+  name      = var.dns_name
+  type      = "A"
+
+  alias {
+    name                      = aws_lb.this_load_balancer.dns_name
+    zone_id                   = aws_lb.this_load_balancer.zone_id
+    evaluate_target_health    = false
   }
 }

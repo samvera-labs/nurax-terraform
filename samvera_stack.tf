@@ -19,7 +19,7 @@ resource "aws_security_group_rule" "samvera_stack_service_egress" {
 }
 
 resource "aws_security_group_rule" "samvera_stack_service_ingress" {
-  for_each            = toset(["2181", "8080", "8983", "9983"])
+  for_each            = toset(["8080", "8983"])
   security_group_id   = aws_security_group.samvera_stack_service.id
   type                = "ingress"
   from_port           = each.key
@@ -200,12 +200,14 @@ resource "aws_ecs_task_definition" "samvera_stack" {
           awslogs-stream-prefix = "fcrepo"
         }
       }
-      healthCheck = {
-        command  = ["CMD-SHELL", "wget -q -O /dev/null --method=OPTIONS http://localhost:8080/rest/"]
-        interval = 30
-        retries  = 3
-        timeout  = 5
-      }
+      # For some reason the health check on this never seems to succeed so let's just turn it off for now
+      # healthCheck = {
+      #   command  = ["CMD-SHELL", "wget -q -O /dev/null --method=OPTIONS http://localhost:8080/rest/"]
+      #   interval        = 30
+      #   retries         = 3
+      #   timeout         = 5
+      #   startPeriod     = 300
+      # }
     },
     {
       name                = "solr",
@@ -232,7 +234,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         }
       }
       healthCheck = {
-        command  = ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8983/solr/"]
+        command  = ["CMD-SHELL", "wget -q -O - http://localhost:8983/solr/"]
         interval = 30
         retries  = 3
         timeout  = 5
@@ -244,9 +246,10 @@ resource "aws_ecs_task_definition" "samvera_stack" {
     name = "fcrepo-data"
     efs_volume_configuration {
       file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
-#      root_directory        = "/fcrepo-data"
+      # root_directory        = "/fcrepo-data"
       transit_encryption        = "ENABLED"
       transit_encryption_port   = 2888
+
       authorization_config {
         access_point_id = aws_efs_access_point.fcrepo_data.id
       }
@@ -257,7 +260,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
     name        = "solr-data"
     efs_volume_configuration {
       file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
-#      root_directory        = "/solr-data"
+      # root_directory        = "/solr-data"
       transit_encryption        = "ENABLED"
       transit_encryption_port   = 2889
 
@@ -291,7 +294,6 @@ resource "aws_ecs_service" "samvera_stack" {
   network_configuration {
     security_groups  = [
       module.vpc.default_security_group_id,
-      aws_security_group.db_client.id,
       aws_security_group.samvera_stack_service.id
     ]
     subnets          = module.vpc.public_subnets

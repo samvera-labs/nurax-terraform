@@ -10,8 +10,16 @@ variable "cpu" {
   type = number
 }
 
+variable "dns_name" {
+  type = string
+}
+
 variable "execution_role_arn" {
-  type  = string
+  type = string
+}
+
+variable "lb_security_group_id" {
+  type = string
 }
 
 variable "memory" {
@@ -28,6 +36,10 @@ variable "private_subnets" {
 
 variable "public_subnets" {
   type = list(string)
+}
+
+variable "public_zone_id" {
+  type = string
 }
 
 variable "registry_url" {

@@ -19,7 +19,7 @@ variable "db_instance_class" {
 variable "fcrepo_cpu" {
   description   = "CPU shares reserved for Fedora"
   type          = number
-  default       = 768
+  default       = 1024
 }
 
 variable "honeybadger_api_key" {
@@ -65,7 +65,7 @@ variable "samvera_stack_memory" {
 variable "solr_cpu" {
   description   = "CPU shares reserved for solr"
   type          = number
-  default       = 1280
+  default       = 1024
 }
 
 variable "tags" {
