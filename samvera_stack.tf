@@ -166,6 +166,15 @@ resource "aws_security_group_rule" "samvera_stack_data_ingress" {
   source_security_group_id    = aws_security_group.samvera_stack_service.id
 }
 
+resource "aws_security_group_rule" "nurax_console_stack_data_ingress" {
+  security_group_id           = aws_security_group.samvera_stack_data_access.id
+  type                        = "ingress"
+  from_port                   = 2049
+  to_port                     = 2049
+  protocol                    = "tcp"
+  source_security_group_id    = aws_security_group.nurax_console.id
+}
+
 resource "aws_ecs_task_definition" "samvera_stack" {
   family = "${var.namespace}-samvera-stack"
   

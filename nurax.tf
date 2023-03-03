@@ -119,3 +119,12 @@ resource "aws_security_group_rule" "nurax_data_ingress" {
   protocol                    = "tcp"
   source_security_group_id    = aws_security_group.nurax.id
 }
+
+resource "aws_security_group_rule" "nurax_console_app_data_ingress" {
+  security_group_id           = aws_security_group.nurax_data_access.id
+  type                        = "ingress"
+  from_port                   = 2049
+  to_port                     = 2049
+  protocol                    = "tcp"
+  source_security_group_id    = aws_security_group.nurax_console.id
+}

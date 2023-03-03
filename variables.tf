@@ -10,6 +10,12 @@ variable "cidr_block" {
   default       = "10.1.0.0/16"
 }
 
+variable "console_users" {
+  description   = "GitHub IDs of users who need access to the Nurax console"
+  type          = list(string)
+  default       = []
+}
+
 variable "db_instance_class" {
   description   = "Instance class for the RDS database"
   type          = string
