@@ -1,7 +1,13 @@
 locals {
   nurax_instances = {
     "dev" = {}
-    "pg" = {}
+    "pg" = {
+      extra_environment = {
+        VALKYRIE_SOLR_HOST = local.samvera_stack_base_url
+        VALKYRIE_SOLR_PORT = 8983
+        VALKYRIE_SOLR_CORE = "${var.namespace}-pg"
+      }
+    }
     "stable" = {}
   }
 
@@ -72,7 +78,7 @@ module "nurax_instance" {
     solr_url                  = "${local.samvera_stack_base_url}:8983/solr/${var.namespace}-${each.key}"
   }
 
-  acm_certificate_arn   = aws_acm_certificate.nurax_certificate.arn
+  acm_certificate_arn     = aws_acm_certificate.nurax_certificate.arn
   cpu                     = 4096
   memory                  = 8192
   dns_name                = each.key
@@ -85,6 +91,7 @@ module "nurax_instance" {
   execution_role_arn      = aws_iam_role.task_execution_role.arn
   task_role_arn           = aws_iam_role.nurax_role.arn
   vpc_id                  = module.vpc.vpc_id
+  extra_environment       = try(each.value.extra_environment, {})
 
   security_group_ids    = [
     module.vpc.default_security_group_id,

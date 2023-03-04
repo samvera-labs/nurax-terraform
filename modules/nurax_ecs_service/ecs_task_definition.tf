@@ -8,6 +8,7 @@ locals {
     { name="HONEYBADGER_API_KEY",         value = var.container_config.honeybadger_api_key },
     { name="HONEYBADGER_ENV",             value = var.container_config.honeybadger_environment },
     { name="RACK_ENV",                    value = "production" },
+    { name="RAILS_ENV",                   value = "production" },
     { name="RAILS_LOG_TO_STDOUT",         value = "true" },
     { name="RAILS_SERVE_STATIC_FILES",    value = "true" },
     { name="REDIS_HOST",                  value = var.container_config.redis_host },
@@ -19,6 +20,9 @@ locals {
     { name="DERIVATIVES_PATH",            value = "/var/nurax-data/derivatives" },
     { name="UPLOADS_PATH",                value = "/var/nurax-data/uploads" }
   ]
+
+  extra_environment = [for k, v in var.extra_environment: { name=k, value=v }]
+  container_environment = concat(local.common_environment, local.extra_environment)
 
   containers = {
     webapp = { role = "server", ports = [3000] }
@@ -33,7 +37,7 @@ locals {
       memoryReservation   = var.memory / 2
       mountPoints         = []
       essential           = true
-      environment         = concat(local.common_environment, [{ name = "CONTAINER_ROLE", value = config.role }])
+      environment         = concat(local.container_environment, [{ name = "CONTAINER_ROLE", value = config.role }])
       logConfiguration = {
         logDriver = "awslogs"
         options = {

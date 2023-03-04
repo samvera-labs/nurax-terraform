@@ -70,7 +70,7 @@ resource "aws_iam_role" "task_execution_role" {
   })
 }
 
-data "aws_iam_policy_document" "ecs_exec_command" {
+data "aws_iam_policy_document" "allow_start_session" {
   statement {
     effect    = "Allow"
     actions   = [
@@ -83,9 +83,9 @@ data "aws_iam_policy_document" "ecs_exec_command" {
   }
 }
 
-resource "aws_iam_policy" "ecs_exec_command" {
-  name    = "${var.namespace}-allow-ecs-exec"
-  policy  = data.aws_iam_policy_document.ecs_exec_command.json
+resource "aws_iam_policy" "allow_start_session" {
+  name    = "${var.namespace}-allow-ssm-exec-command"
+  policy  = data.aws_iam_policy_document.allow_start_session.json
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
@@ -93,9 +93,9 @@ resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_iam_role_policy_attachment" "task_ecs_exec_command" {
+resource "aws_iam_role_policy_attachment" "task_allow_start_session" {
   role       = aws_iam_role.task_execution_role.id
-  policy_arn = aws_iam_policy.ecs_exec_command.arn
+  policy_arn = aws_iam_policy.allow_start_session.arn
 }
 
 data "aws_iam_policy_document" "deploy_nurax" {

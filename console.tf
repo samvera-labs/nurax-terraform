@@ -25,11 +25,11 @@ data "aws_iam_policy_document" "nurax_console" {
     actions   = [for service in local.console_services: "${service}:*"]
     resources = [ "*" ]
 
-    condition {
-      test        = "StringEquals"
-      variable    = "aws:ResourceTag/Namespace"
-      values      = [var.namespace]
-    }
+    # condition {
+    #   test        = "StringEquals"
+    #   variable    = "aws:ResourceTag/Namespace"
+    #   values      = [var.namespace]
+    # }
   }
 }
 
@@ -132,7 +132,7 @@ resource "aws_instance" "nurax_console" {
   ]
 
   ebs_block_device {
-    device_name             = "/dev/nvme0n1"
+    device_name             = "/dev/xvda"
     encrypted               = false
     delete_on_termination   = true
     volume_size             = 50
@@ -140,8 +140,18 @@ resource "aws_instance" "nurax_console" {
     throughput              = 125
   }
 
-  user_data = templatefile("${path.module}/support/console-init.sh", { console_users = join(" ", var.console_users) })
+  user_data = templatefile(
+    "${path.module}/support/console-init.sh", 
+    { 
+      console_users = join(" ", var.console_users)
+      stack_efs_id  = aws_efs_file_system.samvera_stack_data_volume.id
+      nurax_efs_id  = aws_efs_file_system.nurax_data_volume.id
+    }
+  )
 
+  lifecycle {
+    ignore_changes = [ user_data ]
+  }
   tags = {
     Name = "${var.namespace}-console"
   }

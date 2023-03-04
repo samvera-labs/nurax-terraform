@@ -73,9 +73,9 @@ resource "aws_iam_role_policy_attachment" "nurax_role_policy" {
   policy_arn = aws_iam_policy.nurax_role_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "nurax_ecs_exec_command" {
+resource "aws_iam_role_policy_attachment" "nurax_allow_start_session" {
   role       = aws_iam_role.nurax_role.id
-  policy_arn = aws_iam_policy.ecs_exec_command.arn
+  policy_arn = aws_iam_policy.allow_start_session.arn
 }
 
 resource "aws_iam_role_policy_attachment" "nurax_ecs_launch_task" {

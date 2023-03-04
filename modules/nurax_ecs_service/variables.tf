@@ -18,6 +18,11 @@ variable "execution_role_arn" {
   type = string
 }
 
+variable "extra_environment" {
+  type    = map(string)
+  default = {}
+}
+
 variable "lb_security_group_id" {
   type = string
 }
