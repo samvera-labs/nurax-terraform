@@ -150,7 +150,7 @@ resource "aws_instance" "nurax_console" {
   )
 
   lifecycle {
-    ignore_changes = [ user_data ]
+    ignore_changes = [ user_data, associate_public_ip_address ]
   }
   tags = {
     Name = "${var.namespace}-console"

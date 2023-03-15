@@ -2,12 +2,7 @@
 if [[ ! -e /home/admin/.init-complete ]]; then
   exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-  mkdir -p /mnt/stack-data /mnt/nurax-data
-  cat >> /etc/fstab <<'EOF'
-${stack_efs_id}:/ /mnt/stack-data efs _netdev,noresvport,tls,iam 0 0
-${nurax_efs_id}:/ /mnt/nurax-data efs _netdev,noresvport,tls,iam 0 0
-EOF
-
+  # Add admin users to authorized_keys
   cat > install_keys.sh <<'EOF'
 mkdir -p /home/admin/.ssh
 for u in ${console_users}; do 
@@ -17,8 +12,18 @@ chmod -R go-rwx /home/admin/.ssh
 EOF
 
   chmod 0755 install_keys.sh
-  sudo -u admin install_keys.sh
+  sudo -u admin ./install_keys.sh
   rm install_keys.sh
+
+  # Install required packages
+  curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+  curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+  echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+
+  apt-get install --no-install-recommends --fix-missing --allow-unauthenticated -y \
+    ca-certificates ruby-dev nodejs yarn build-essential libpq-dev libreoffice imagemagick \
+    git unzip ghostscript vim ffmpeg clamav-freshclam clamav-daemon libclamav-dev jq \
+    libqt5webkit5-dev xvfb xauth default-jre-headless docker.io unzip postgresql-client libpq-dev
 
   # Install EFS Utils, SSM Agent, and Session Manager 
   cd /tmp
@@ -42,22 +47,12 @@ EOF
 
   rm amazon-ssm-agent.deb session-manager-plugin.deb
 
-  # Install required packages
-  curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
-  curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-  echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-
-  apt-get install --no-install-recommends --fix-missing --allow-unauthenticated -y \
-    ca-certificates ruby-dev nodejs yarn build-essential libpq-dev libreoffice imagemagick \
-    git unzip ghostscript vim ffmpeg clamav-freshclam clamav-daemon libclamav-dev jq \
-    libqt5webkit5-dev xvfb xauth default-jre-headless docker.io unzip postgresql-client libpq-dev
-
   usermod -a -G docker admin
-  gem install --no-doc --no-ri bundler
+  gem install --no-doc bundler
 
   # Install AWS CLI v2
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "mp/awscliv2.zip"
-  unzip -qo awscliv2.zip -d /tmp
+  curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+  unzip -qo awscliv2.zip
   aws/install
   rm -rf aws awscliv2.zip
 
@@ -65,6 +60,13 @@ EOF
   mkdir -p /opt/fits && \
     curl -fSL -o /opt/fits/fits-1.5.0.zip https://github.com/harvard-lts/fits/releases/download/1.5.0/fits-1.5.0.zip && \
     cd /opt/fits && unzip fits-1.5.0.zip && chmod +X fits.sh && rm fits-1.5.0.zip
+
+  # Add EFS mounts to fstab
+  mkdir -p /mnt/stack-data /mnt/nurax-data
+  cat >> /etc/fstab <<'EOF'
+${stack_efs_id}:/ /mnt/stack-data efs _netdev,noresvport,tls,iam 0 0
+${nurax_efs_id}:/ /mnt/nurax-data efs _netdev,noresvport,tls,iam 0 0
+EOF
 
   touch /home/admin/.init-complete
 fi
