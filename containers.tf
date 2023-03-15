@@ -24,12 +24,12 @@ resource "aws_ecr_lifecycle_policy" "nurax_image_expiration" {
     rules = [
       {
         rulePriority = 1
-        description  = "Expire untagged images after 7 days"
+        description  = "Expire untagged images after 1 day"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
           countUnit   = "days"
-          countNumber = 7
+          countNumber = 1
         }
         action = {
           type        = "expire"
@@ -96,42 +96,4 @@ resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
 resource "aws_iam_role_policy_attachment" "task_allow_start_session" {
   role       = aws_iam_role.task_execution_role.id
   policy_arn = aws_iam_policy.allow_start_session.arn
-}
-
-data "aws_iam_policy_document" "deploy_nurax" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ecr:InitiateLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload",
-      "ecr:PutImage",
-      "ecr:TagResource",
-      "ecr:UntagResource"
-    ]
-    resources = [
-      aws_ecr_repository.nurax_images["nurax"].arn,
-      "${aws_ecr_repository.nurax_images["nurax"].arn}/*"
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = ["ecs:UpdateService"]
-    resources = ["${aws_ecs_cluster.nurax_cluster.arn}/*"]
-  }
-}
-
-resource "aws_iam_policy" "deploy_nurax" {
-  name    = "${var.namespace}-deploy"
-  policy  = data.aws_iam_policy_document.deploy_nurax.json
-}
-
-resource "aws_iam_user" "deploy_nurax" {
-  name    = "${var.namespace}-deploy"
-}
-
-resource "aws_iam_user_policy_attachment" "deploy_nurax" {
-  user       = aws_iam_user.deploy_nurax.name
-  policy_arn = aws_iam_policy.deploy_nurax.arn
 }
