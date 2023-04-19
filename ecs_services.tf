@@ -3,7 +3,7 @@ locals {
     "dev" = {}
     "pg" = {
       extra_environment = {
-        VALKYRIE_SOLR_HOST = local.samvera_stack_base_url
+        VALKYRIE_SOLR_HOST = local.samvera_stack_hostname
         VALKYRIE_SOLR_PORT = 8983
         VALKYRIE_SOLR_CORE = "${var.namespace}-pg"
       }
