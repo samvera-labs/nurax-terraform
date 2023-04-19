@@ -72,7 +72,7 @@ module "nurax_instance" {
     fedora_url                = "${local.samvera_stack_base_url}:8080/rest"
     honeybadger_api_key       = var.honeybadger_api_key
     honeybadger_environment   = each.key
-    redis_host                = aws_elasticache_cluster.redis.cache_nodes[0].address
+    redis_host                = aws_elasticache_cluster.redis[each.key].cache_nodes[0].address
     redis_port                = "6379"
     region                    = data.aws_region.current.name
     solr_url                  = "${local.samvera_stack_base_url}:8983/solr/${var.namespace}-${each.key}"
