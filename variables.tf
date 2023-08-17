@@ -47,7 +47,7 @@ variable "namespace" {
 variable "postgres_version" {
   description   = "PostgreSQL version to use"
   type          = string
-  default       = "14.6"
+  default       = "14.7"
 }
 
 variable "private_subnets" {
