@@ -18,6 +18,7 @@ locals {
     { name="SOLR_URL",                    value = var.container_config.solr_url },
     { name="CACHE_PATH",                  value = "/var/nurax-data/cache" },
     { name="DERIVATIVES_PATH",            value = "/var/nurax-data/derivatives" },
+    { name="STORAGE_PATH",                value = "/var/nurax-data/storage" },
     { name="UPLOADS_PATH",                value = "/var/nurax-data/uploads" }
   ]
 
