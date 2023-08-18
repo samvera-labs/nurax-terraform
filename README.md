@@ -45,3 +45,9 @@ The resources created include:
    ```
    terraform apply terraform.plan
    ```
+
+### Console Access
+1. Connect to the nurax-console EC2 instance via SSH.
+2. Find the task id in the AWS ECS dashboard for the desired nurax instance.
+3. Choose webapp or worker container
+4. Run `aws ecs execute-command --cluster nurax --task {task id} --container {webapp|worker} --interactive --command "/bin/bash"`
