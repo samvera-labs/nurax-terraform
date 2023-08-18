@@ -7,6 +7,10 @@ locals {
     { name="FEDORA_URL",                  value = var.container_config.fedora_url },
     { name="HONEYBADGER_API_KEY",         value = var.container_config.honeybadger_api_key },
     { name="HONEYBADGER_ENV",             value = var.container_config.honeybadger_environment },
+    { name="HYRAX_CACHE_PATH",            value = "/var/nurax-data/cache" },
+    { name="HYRAX_DERIVATIVES_PATH",      value = "/var/nurax-data/derivatives" },
+    { name="HYRAX_STORAGE_PATH",          value = "/var/nurax-data/storage" },
+    { name="HYRAX_UPLOAD_PATH",          value = "/var/nurax-data/uploads" },
     { name="RACK_ENV",                    value = "production" },
     { name="RAILS_ENV",                   value = "production" },
     { name="RAILS_LOG_TO_STDOUT",         value = "true" },
@@ -15,11 +19,7 @@ locals {
     { name="REDIS_PORT",                  value = var.container_config.redis_port },
     { name="REDIS_URL",                   value = "redis://${var.container_config.redis_host}:${var.container_config.redis_port}/" },
     { name="SECRET_KEY_BASE",             value = random_id.secret_key_base.hex },
-    { name="SOLR_URL",                    value = var.container_config.solr_url },
-    { name="CACHE_PATH",                  value = "/var/nurax-data/cache" },
-    { name="DERIVATIVES_PATH",            value = "/var/nurax-data/derivatives" },
-    { name="STORAGE_PATH",                value = "/var/nurax-data/storage" },
-    { name="UPLOADS_PATH",                value = "/var/nurax-data/uploads" }
+    { name="SOLR_URL",                    value = var.container_config.solr_url }
   ]
 
   extra_environment = [for k, v in var.extra_environment: { name=k, value=v }]
