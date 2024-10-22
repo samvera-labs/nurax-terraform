@@ -243,7 +243,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         }
       }
       healthCheck = {
-        command  = ["CMD-SHELL", "wget -q -O - http://localhost:8983/solr/"]
+        command  = ["CMD-SHELL", "wget -q -O - http://localhost:8983/solr/nurax-dev/admin/ping http://localhost:8983/solr/nurax-pg/admin/ping"]
         interval = 30
         retries  = 3
         timeout  = 5
