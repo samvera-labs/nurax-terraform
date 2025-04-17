@@ -3,22 +3,30 @@ locals {
   common_environment = [
     { name="AWS_REGION",                  value = var.container_config.region },
     { name="DATABASE_URL",                value = "${var.container_config.database_url}?pool=${var.container_config.db_pool_size}" },
+    { name="DB_HOST",                     value = var.container_config.database_hostname },
+    { name="DB_PORT",                     value = var.container_config.database_port },
     { name="FEDORA_BASE_PATH",            value = var.container_config.fedora_base_path },
     { name="FEDORA_URL",                  value = var.container_config.fedora_url },
+    { name="FEDORA6_URL",                 value = var.container_config.fedora6_url },
     { name="HONEYBADGER_API_KEY",         value = var.container_config.honeybadger_api_key },
     { name="HONEYBADGER_ENV",             value = var.container_config.honeybadger_environment },
+    { name="HYRAX_BRANDING_PATH",         value = "/var/nurax-data/branding" },
     { name="HYRAX_CACHE_PATH",            value = "/var/nurax-data/cache" },
     { name="HYRAX_DERIVATIVES_PATH",      value = "/var/nurax-data/derivatives" },
     { name="HYRAX_STORAGE_PATH",          value = "/var/nurax-data/storage" },
-    { name="HYRAX_UPLOAD_PATH",          value = "/var/nurax-data/uploads" },
+    { name="HYRAX_UPLOAD_PATH",           value = "/var/nurax-data/uploads" },
     { name="RACK_ENV",                    value = "production" },
     { name="RAILS_ENV",                   value = "production" },
+    { name="RAILS_LOG_LEVEL",             value = "warn" },
     { name="RAILS_LOG_TO_STDOUT",         value = "true" },
     { name="RAILS_SERVE_STATIC_FILES",    value = "true" },
     { name="REDIS_HOST",                  value = var.container_config.redis_host },
     { name="REDIS_PORT",                  value = var.container_config.redis_port },
     { name="REDIS_URL",                   value = "redis://${var.container_config.redis_host}:${var.container_config.redis_port}/" },
     { name="SECRET_KEY_BASE",             value = random_id.secret_key_base.hex },
+    { name="SIDEKIQ_MODE",                value = "embed" },
+    { name="SOLR_HOST",                   value = var.container_config.samvera_stack_hostname },
+    { name="SOLR_PORT",                   value = "8983" },
     { name="SOLR_URL",                    value = var.container_config.solr_url }
   ]
 
@@ -27,16 +35,17 @@ locals {
 
   containers = {
     webapp = { role = "server", ports = [3000] }
-    worker = { role = "sidekiq", ports = [] }
+    # worker = { role = "sidekiq", ports = [] }
   }
 
   container_definitions = [
     for name, config in local.containers: {
       name                = name
-      image               = "${var.registry_url}/${join(":", split("-", var.namespace))}"
-      cpu                 = var.cpu / 2
-      memoryReservation   = var.memory / 2
-      mountPoints         = []
+      image               = "ghcr.io/samvera/hyrax-dev:b52aec86445327692844560cff7c278590e15712"
+      workingDirectory    = var.container_config.working_dir
+      cpu                 = var.cpu
+      memoryReservation   = var.memory
+      user                = "root"
       essential           = true
       environment         = concat(local.container_environment, [{ name = "CONTAINER_ROLE", value = config.role }])
       logConfiguration = {
@@ -46,6 +55,12 @@ locals {
           awslogs-region          = var.container_config.region
           awslogs-stream-prefix   = name
         }
+      }
+      healthCheck = {
+        command  = ["CMD-SHELL", "wget -q -O - http://localhost:3000/"]
+        interval = 60
+        retries  = 10
+        timeout  = 10
       }
       portMappings = [
         for port in config.ports: { 
@@ -75,16 +90,24 @@ resource "aws_ecs_task_definition" "this_task_definition" {
   volume {
     name = "nurax-data"
     efs_volume_configuration {
-      file_system_id = var.container_config.data_volume_id
-      root_directory = "/${var.namespace}"
+      file_system_id          = var.container_config.data_volume_id
+      # root_directory          = "/${var.namespace}"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = var.efs_data_access_point
+      }
     }
   }
 
   volume {
     name = "nurax-temp"
     efs_volume_configuration {
-      file_system_id = var.container_config.data_volume_id
-      root_directory = "/tmp/${var.namespace}"
+      file_system_id          = var.container_config.data_volume_id
+      # root_directory          = "/tmp/${var.namespace}"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = var.efs_tmp_access_point
+      }
     }
   }
 
@@ -100,7 +123,7 @@ resource "aws_ecs_service" "this_service" {
   name                              = var.namespace
   cluster                           = "nurax"
   task_definition                   = aws_ecs_task_definition.this_task_definition.arn
-  desired_count                     = 0
+  desired_count                     = 1
   enable_execute_command            = true
   launch_type                       = "FARGATE"
   platform_version                  = "1.4.0"

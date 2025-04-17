@@ -22,12 +22,6 @@ variable "db_instance_class" {
   default       = "db.t4g.micro"
 }
 
-variable "fcrepo_cpu" {
-  description   = "CPU shares reserved for Fedora"
-  type          = number
-  default       = 1024
-}
-
 variable "honeybadger_api_key" {
   type    = string
   default = ""
@@ -60,18 +54,6 @@ variable "public_subnets" {
   description   = "CIDR blocks for the public subnet in each availability zone"
   type          = list(string)
   default       = ["10.1.2.0/24", "10.1.4.0/24", "10.1.6.0/24"]
-}
-
-variable "samvera_stack_memory" {
-  description   = "Total memory allocated for Fedora and solr"
-  type          = number
-  default       = 4096
-}
-
-variable "solr_cpu" {
-  description   = "CPU shares reserved for solr"
-  type          = number
-  default       = 1024
 }
 
 variable "tags" {

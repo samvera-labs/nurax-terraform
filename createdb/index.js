@@ -9,7 +9,7 @@ function createDb(event) {
       required: true,
     },
     { query: `GRANT ${schema_role} TO ${user};`, required: true },
-    { query: `CREATE DATABASE "${schema}" OWNER ${schema_role};`, required: true },
+    { query: `CREATE DATABASE "${schema}" OWNER ${schema_role};`, required: false },
   ];
 }
 

@@ -78,6 +78,11 @@ resource "aws_iam_role_policy_attachment" "nurax_allow_start_session" {
   policy_arn = aws_iam_policy.allow_start_session.arn
 }
 
+resource "aws_iam_role_policy_attachment" "nurax_allow_efs_mount" {
+  role       = aws_iam_role.nurax_role.id
+  policy_arn = aws_iam_policy.allow_efs_mount.arn
+}
+
 resource "aws_iam_role_policy_attachment" "nurax_ecs_launch_task" {
   role       = aws_iam_role.nurax_role.id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"

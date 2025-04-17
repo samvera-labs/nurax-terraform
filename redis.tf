@@ -27,12 +27,12 @@ resource "aws_elasticache_subnet_group" "redis" {
 }
 
 resource "aws_elasticache_cluster" "redis" {
-  for_each             = toset(["dev", "pg", "stable"])
+  for_each             = toset(["dev", "pg", "f6"])
   cluster_id           = "${var.namespace}-${each.key}-redis"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
-  engine_version       = "7.0"
+  engine_version       = "7.1"
   security_group_ids   = [aws_security_group.redis_service.id]
   subnet_group_name    = aws_elasticache_subnet_group.redis.name
 }

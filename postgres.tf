@@ -77,19 +77,19 @@ resource "aws_db_instance" "db" {
 
 module "create_db_lambda" {
   source  = "terraform-aws-modules/lambda/aws"
-  version = "4.10.1"
+  version = "7.20.1"
 
   function_name = "${var.namespace}-createdb"
   description   = "Create schemas in the ${aws_db_instance.db.db_name} database"
   handler       = "index.handler"
-  runtime       = "nodejs16.x"
+  runtime       = "nodejs22.x"
   timeout       = 10
 
   source_path   = "${path.module}/createdb"
 
   vpc_subnet_ids            = module.vpc.private_subnets
   vpc_security_group_ids    = [
-    module.vpc.default_security_group_id
+    aws_security_group.db.id
   ]
   attach_network_policy     = true
 }

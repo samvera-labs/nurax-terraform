@@ -1,14 +1,22 @@
 locals {
   nurax_instances = {
-    "dev" = {}
-    "pg" = {
+    "dev" = {
       extra_environment = {
-        VALKYRIE_SOLR_HOST = local.samvera_stack_hostname
-        VALKYRIE_SOLR_PORT = 8983
-        VALKYRIE_SOLR_CORE = "${var.namespace}-pg"
+        RAILS_ROOT = "/app/samvera/hyrax-webapp"
       }
     }
-    "stable" = {}
+    "pg" = {
+      extra_environment = {
+        RAILS_ROOT = "/app/samvera/hyrax-koppie"
+      }
+    }
+    "f6" = {
+      extra_environment = {
+        RAILS_ROOT = "/app/samvera/hyrax-koppie"
+        VALKYRIE_METADATA_ADAPTER   = "fedora_metadata"
+        VALKYRIE_STORAGE_ADAPTER    = "fedora_storage"
+      }
+    }
   }
 
   schema_params = {
@@ -27,7 +35,7 @@ locals {
 
 resource "aws_acm_certificate" "nurax_certificate" {
   domain_name                 = aws_route53_zone.public_zone.name
-  subject_alternative_names   = [for hostname in keys(local.nurax_instances): "${hostname}.${aws_route53_zone.public_zone.name}"]
+  subject_alternative_names   = ["*.${aws_route53_zone.public_zone.name}"]
   validation_method           = "DNS"
   lifecycle {
     create_before_destroy = true
@@ -60,27 +68,66 @@ resource "aws_lambda_invocation" "create_nurax_database" {
   )
 }
 
+resource "aws_efs_access_point" "nurax_data" {
+  for_each        = local.nurax_instances
+  file_system_id    = aws_efs_file_system.nurax_data_volume.id
+  posix_user {
+    uid = 0
+    gid = 0
+  }
+  root_directory {
+    path = "/nurax-${each.key}"
+    creation_info {
+      owner_uid   = 0
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
+resource "aws_efs_access_point" "nurax_tmp" {
+  for_each        = local.nurax_instances
+  file_system_id    = aws_efs_file_system.nurax_data_volume.id
+  posix_user {
+    uid = 0
+    gid = 0
+  }
+  root_directory {
+    path = "/tmp/nurax-${each.key}"
+    creation_info {
+      owner_uid   = 0
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
 module "nurax_instance" {
   for_each    = local.nurax_instances
   source      = "./modules/nurax_ecs_service"
 
   container_config = {
     data_volume_id            = aws_efs_file_system.nurax_data_volume.id
+    database_hostname         = aws_db_instance.db.address
+    database_port             = aws_db_instance.db.port
     database_url              = local.database_urls[each.key]
     db_pool_size              = 20
     fedora_base_path          = "/${var.namespace}-${each.key}"
-    fedora_url                = "${local.samvera_stack_base_url}:8080/rest"
+    fedora_url                = "${local.fcrepo_base_url}:8080/rest"
+    fedora6_url               = "http://fedoraAdmin:fedoraAdmin@${local.samvera_stack_base_url}:8080/fcrepo/rest"
     honeybadger_api_key       = var.honeybadger_api_key
     honeybadger_environment   = each.key
     redis_host                = aws_elasticache_cluster.redis[each.key].cache_nodes[0].address
-    redis_port                = "6379"
+    redis_port                = aws_elasticache_cluster.redis[each.key].cache_nodes[0].port
     region                    = data.aws_region.current.name
-    solr_url                  = "${local.samvera_stack_base_url}:8983/solr/${var.namespace}-${each.key}"
+    solr_url                  = "http://${local.samvera_stack_base_url}:8983/solr/${var.namespace}-${each.key}"
+    samvera_stack_hostname    = local.samvera_stack_hostname
+    working_dir               = each.key == "dev" ? "/app/samvera/hyrax-webapp" : "/app/samvera/hyrax-koppie"
   }
 
   acm_certificate_arn     = aws_acm_certificate.nurax_certificate.arn
-  cpu                     = 4096
-  memory                  = 8192
+  cpu                     = 1024
+  memory                  = 2048
   dns_name                = each.key
   namespace               = "${var.namespace}-${each.key}"
   private_subnets         = module.vpc.private_subnets
@@ -92,6 +139,8 @@ module "nurax_instance" {
   task_role_arn           = aws_iam_role.nurax_role.arn
   vpc_id                  = module.vpc.vpc_id
   extra_environment       = try(each.value.extra_environment, {})
+  efs_data_access_point   = aws_efs_access_point.nurax_data[each.key].id
+  efs_tmp_access_point    = aws_efs_access_point.nurax_tmp[each.key].id
 
   security_group_ids    = [
     module.vpc.default_security_group_id,

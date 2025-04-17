@@ -7,6 +7,9 @@ resource "aws_security_group" "samvera_stack_service" {
   name        = "${var.namespace}-samvera-stack"
   description = "Fedora/Solr Service Security Group"
   vpc_id      = module.vpc.vpc_id
+  timeouts {
+    delete = "2m"
+  }
 }
 
 resource "aws_security_group_rule" "samvera_stack_service_egress" {
@@ -28,22 +31,22 @@ resource "aws_security_group_rule" "samvera_stack_service_ingress" {
   cidr_blocks         = [module.vpc.vpc_cidr_block]
 }
 
-resource "aws_s3_bucket" "fedora_binaries" {
-  bucket      = "${var.namespace}-fcrepo-binaries"
+resource "aws_s3_bucket" "fedora6_ocfl" {
+  bucket      = "${var.namespace}-fcrepo6-ocfl"
 }
 
-resource "aws_iam_user" "fedora_binary_bucket_user" {
-  name = "${var.namespace}-fcrepo"
+resource "aws_iam_user" "fedora6_binary_bucket_user" {
+  name = "${var.namespace}-fcrepo6"
   path = "/system/"
 }
 
-resource "aws_iam_access_key" "fedora_binary_bucket_access_key" {
-  user = aws_iam_user.fedora_binary_bucket_user.name
+resource "aws_iam_access_key" "fedora6_binary_bucket_access_key" {
+  user = aws_iam_user.fedora6_binary_bucket_user.name
 }
 
-resource "aws_iam_user_policy" "fedora_binary_bucket_user_policy" {
-  name = "${var.namespace}-fcrepo"
-  user = aws_iam_user.fedora_binary_bucket_user.name
+resource "aws_iam_user_policy" "fedora6_binary_bucket_user_policy" {
+  name = "${var.namespace}-fcrepo6"
+  user = aws_iam_user.fedora6_binary_bucket_user.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -54,15 +57,15 @@ resource "aws_iam_user_policy" "fedora_binary_bucket_user_policy" {
         Action = ["s3:*"]
 
         Resource = [
-          "${aws_s3_bucket.fedora_binaries.arn}",
-          "${aws_s3_bucket.fedora_binaries.arn}/*"
+          "${aws_s3_bucket.fedora6_ocfl.arn}",
+          "${aws_s3_bucket.fedora6_ocfl.arn}/*"
         ]
       }
     ]
   })
 }
 
-resource "random_string" "fcrepo_password" {
+resource "random_string" "fcrepo6_password" {
   length  = 16
   upper   = true
   lower   = true
@@ -70,7 +73,7 @@ resource "random_string" "fcrepo_password" {
   special = false
 }
 
-resource "aws_lambda_invocation" "create_database" {
+resource "aws_lambda_invocation" "create_fedora6_database" {
   function_name = module.create_db_lambda.lambda_function_arn
 
   input = jsonencode({
@@ -78,43 +81,39 @@ resource "aws_lambda_invocation" "create_database" {
     port              = aws_db_instance.db.port
     user              = aws_db_instance.db.username
     password          = aws_db_instance.db.password
-    schema            = "fcrepo"
-    schema_password   = random_string.fcrepo_password.result
+    schema            = "fcrepo6"
+    schema_password   = random_string.fcrepo6_password.result
   })
 }
 
 locals {
-  create_database_result = jsondecode(aws_lambda_invocation.create_database.result)
+  create_fedora6_database_result = jsondecode(aws_lambda_invocation.create_fedora6_database.result)
 
-  fedora_java_opts = {
-    "fcrepo.postgresql.host" = aws_db_instance.db.address
-    "fcrepo.postgresql.port" = aws_db_instance.db.port
-    "fcrepo.postgresql.username" = local.create_database_result.username
-    "fcrepo.postgresql.password" = local.create_database_result.password
-    "aws.accessKeyId" = aws_iam_access_key.fedora_binary_bucket_access_key.id
-    "aws.secretKey" = aws_iam_access_key.fedora_binary_bucket_access_key.secret
-    "aws.bucket" = aws_s3_bucket.fedora_binaries.id
+  fedora6_catalina_opts = {
+    "Dfcrepo.aws.access-key" = aws_iam_access_key.fedora6_binary_bucket_access_key.id
+    "Dfcrepo.aws.secret-key" = aws_iam_access_key.fedora6_binary_bucket_access_key.secret
+    "Dfcrepo.aws.region" = data.aws_region.current.name
+    "Dfcrepo.home" = "/fcrepo-home"
+    "Dfcrepo.jms.enabled" = "false"
+    "Dfcrepo.log" = "WARN"
+    "Dfcrepo.metrics.enable" = "false"
+    "Dfcrepo.ocfl.s3.bucket" = aws_s3_bucket.fedora6_ocfl.id
+    "Dfcrepo.ocfl.s3.prefix" = var.namespace
+    "Dfcrepo.pid.minter.count" = "4"
+    "Dfcrepo.pid.minter.length" = "2"
+    "Dfcrepo.postgresql.host" = aws_db_instance.db.address
+    "Dfcrepo.postgresql.port" = aws_db_instance.db.port
+    "Dfcrepo.postgresql.username" = local.create_fedora6_database_result.username
+    "Dfcrepo.postgresql.password" = local.create_fedora6_database_result.password
+    "Dfcrepo.storage" = "ocfl-s3"
+    "Dfile.encoding" = "UTF-8"
+    # Extra values here because they have no =
+    "Djava.awt.headless" = "true -server -Xms1G -Xmx2G -XX:+UseG1GC -XX:+DisableExplicitGC"
   }
 }
 
 resource "aws_efs_file_system" "samvera_stack_data_volume" {
   encrypted      = false
-}
-
-resource "aws_efs_access_point" "fcrepo_data" {
-  file_system_id    = aws_efs_file_system.samvera_stack_data_volume.id
-  posix_user {
-    uid = 0
-    gid = 0
-  }
-  root_directory {
-    path = "/fcrepo-data"
-    creation_info {
-      owner_uid   = 0
-      owner_gid   = 0
-      permissions = "0770"
-    }
-  }
 }
 
 resource "aws_efs_access_point" "solr_data" {
@@ -127,6 +126,22 @@ resource "aws_efs_access_point" "solr_data" {
     path = "/solr-data"
     creation_info {
       owner_uid   = 8983
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
+resource "aws_efs_access_point" "fcrepo6_data" {
+  file_system_id    = aws_efs_file_system.samvera_stack_data_volume.id
+  posix_user {
+    uid = 0
+    gid = 0
+  }
+  root_directory {
+    path = "/fcrepo6-data"
+    creation_info {
+      owner_uid   = 0
       owner_gid   = 0
       permissions = "0770"
     }
@@ -180,25 +195,26 @@ resource "aws_ecs_task_definition" "samvera_stack" {
   
   container_definitions = jsonencode([
     {
-      name                = "fcrepo"
-      image               = "${local.ecs_registry_url}/fcrepo4:4.7.5-s3multipart"
+      name                = "fcrepo6"
+      image               = "${local.ecs_registry_url}/fcrepo:6.5.1-tomcat9"
       essential           = true
-      cpu                 = var.fcrepo_cpu
+      cpu                 = 1024
+      memory              = 2048
       environment = [
-        { 
-          name  = "MODESHAPE_CONFIG",
-          value = "classpath:/config/jdbc-postgresql-s3/repository.json"
+        {
+          name  = "CATALINA_OPTS",
+          value = join(" ", [for key, value in local.fedora6_catalina_opts : "-${key}=${value}"])
         },
         {
-          name  = "JAVA_OPTIONS",
-          value = join(" ", [for key, value in local.fedora_java_opts : "-D${key}=${value}"])
+          name  = "ENCODED_SOLIDUS_HANDLING",
+          value = "passthrough"
         }
       ]
       portMappings = [
         { hostPort = 8080, containerPort = 8080 }
       ]
       mountPoints = [
-        { sourceVolume = "fcrepo-data", containerPath = "/data" }
+        { sourceVolume = "fcrepo6-data", containerPath = "/fcrepo-home" }
       ]
       readonlyRootFilesystem = false
       logConfiguration = {
@@ -206,7 +222,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         options   = {
           awslogs-group         = aws_cloudwatch_log_group.samvera_stack_logs.name
           awslogs-region        = data.aws_region.current.name
-          awslogs-stream-prefix = "fcrepo"
+          awslogs-stream-prefix = "fcrepo6"
         }
       }
       # For some reason the health check on this never seems to succeed so let's just turn it off for now
@@ -222,10 +238,11 @@ resource "aws_ecs_task_definition" "samvera_stack" {
       name                = "solr",
       image               = "${local.ecs_registry_url}/solr:8.11-slim"
       essential           = true
-      cpu                 = var.solr_cpu
-      command             = ["solr", "-f"]
+      cpu                 = 1024
+      memory              = 2048
+      command             = ["solr", "-f", "-q"]
       environment = [
-        { name = "SOLR_HEAP",       value = "${var.solr_cpu * 0.9765625}m" }
+        { name = "SOLR_HEAP",       value = "${2048 * 0.9765625}m" }
       ]
       portMappings = [
         { hostPort = 8983, containerPort = 8983 }
@@ -252,29 +269,29 @@ resource "aws_ecs_task_definition" "samvera_stack" {
   ])
 
   volume {
-    name = "fcrepo-data"
-    efs_volume_configuration {
-      file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
-      # root_directory        = "/fcrepo-data"
-      transit_encryption        = "ENABLED"
-      transit_encryption_port   = 2888
-
-      authorization_config {
-        access_point_id = aws_efs_access_point.fcrepo_data.id
-      }
-    }
-  }
-
-  volume {
     name        = "solr-data"
     efs_volume_configuration {
       file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
       # root_directory        = "/solr-data"
       transit_encryption        = "ENABLED"
-      transit_encryption_port   = 2889
+      # transit_encryption_port   = 2889
 
       authorization_config {
         access_point_id = aws_efs_access_point.solr_data.id
+      }
+    }
+  }
+
+  volume {
+    name = "fcrepo6-data"
+    efs_volume_configuration {
+      file_system_id            = aws_efs_file_system.samvera_stack_data_volume.id
+      # root_directory        = "/fcrepo6-data"
+      transit_encryption        = "ENABLED"
+      # transit_encryption_port   = 2890
+
+      authorization_config {
+        access_point_id = aws_efs_access_point.fcrepo6_data.id
       }
     }
   }
@@ -283,27 +300,31 @@ resource "aws_ecs_task_definition" "samvera_stack" {
   execution_role_arn       = aws_iam_role.task_execution_role.arn
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = var.fcrepo_cpu + var.solr_cpu
-  memory                   = var.samvera_stack_memory
+  cpu                      = 2048
+  memory                   = 4096
 }
 
 resource "aws_ecs_service" "samvera_stack" {
   name                   = "samvera-stack"
   cluster                = aws_ecs_cluster.nurax_cluster.id
   task_definition        = aws_ecs_task_definition.samvera_stack.arn
-  desired_count          = 0
+  desired_count          = 1
   enable_execute_command = true
   launch_type            = "FARGATE"
   platform_version       = "1.4.0"
 
   lifecycle {
     ignore_changes          = [desired_count]
+    replace_triggered_by = [
+      aws_security_group.samvera_stack_service.name
+    ]
   }
 
   network_configuration {
     security_groups  = [
       module.vpc.default_security_group_id,
-      aws_security_group.samvera_stack_service.id
+      aws_security_group.samvera_stack_service.id,
+      aws_security_group.endpoint_access.id
     ]
     subnets          = module.vpc.public_subnets
     assign_public_ip = true

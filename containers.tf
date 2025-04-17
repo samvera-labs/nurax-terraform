@@ -1,5 +1,5 @@
 locals {
-  repositories = toset(["fcrepo4", "solr", "nurax"])
+  repositories = toset(["fcrepo4", "fcrepo", "solr", "nurax"])
 }
 
 locals {
@@ -70,6 +70,34 @@ resource "aws_iam_role" "task_execution_role" {
   })
 }
 
+data "aws_iam_policy_document" "allow_ecr_pull" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources  = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "allow_efs_mount" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "elasticfilesystem:ClientMount",
+      "elasticfilesystem:ClientWrite",
+      "elasticfilesystem:DescribeMountTargets",
+      "elasticfilesystem:DescribeFileSystems"
+    ]
+    resources  = ["*"]
+  }
+}
+
 data "aws_iam_policy_document" "allow_start_session" {
   statement {
     effect    = "Allow"
@@ -83,6 +111,16 @@ data "aws_iam_policy_document" "allow_start_session" {
   }
 }
 
+resource "aws_iam_policy" "allow_ecr_pull" {
+  name    = "${var.namespace}-allow-ecr-pull"
+  policy  = data.aws_iam_policy_document.allow_ecr_pull.json
+}
+
+resource "aws_iam_policy" "allow_efs_mount" {
+  name    = "${var.namespace}-allow-efs-mount"
+  policy  = data.aws_iam_policy_document.allow_efs_mount.json
+}
+
 resource "aws_iam_policy" "allow_start_session" {
   name    = "${var.namespace}-allow-ssm-exec-command"
   policy  = data.aws_iam_policy_document.allow_start_session.json
@@ -91,6 +129,11 @@ resource "aws_iam_policy" "allow_start_session" {
 resource "aws_iam_role_policy_attachment" "task_execution_role_policy" {
   role       = aws_iam_role.task_execution_role.id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "task_allow_ecr_pull" {
+  role       = aws_iam_role.task_execution_role.id
+  policy_arn = aws_iam_policy.allow_ecr_pull.arn
 }
 
 resource "aws_iam_role_policy_attachment" "task_allow_start_session" {

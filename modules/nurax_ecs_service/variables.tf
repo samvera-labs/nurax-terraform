@@ -14,6 +14,14 @@ variable "dns_name" {
   type = string
 }
 
+variable "efs_data_access_point" {
+  type = string
+}
+
+variable "efs_tmp_access_point" {
+  type = string
+}
+
 variable "execution_role_arn" {
   type = string
 }

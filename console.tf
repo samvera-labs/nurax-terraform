@@ -82,7 +82,7 @@ data "aws_ami" "nurax_console" {
 
   filter {
     name   = "name"
-    values = ["debian-11-*"]
+    values = ["debian-12-*"]
   }
 
   filter {
@@ -112,7 +112,7 @@ data "aws_subnet" "nurax_console_subnet" {
 
 resource "aws_instance" "nurax_console" {
   ami             = data.aws_ami.nurax_console.id
-  instance_type   = "t3a.large"
+  instance_type   = "t3a.small"
   key_name        = "nurax"
 
   disable_api_termination                 = true

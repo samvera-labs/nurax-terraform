@@ -20,7 +20,7 @@ The resources created include:
 - A working copy of this repository
 - The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/)
 - An [AWS Profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) with administrative access to the account you will be deploying under (the remainder of this document will assume that profile is called `nurax`)
-- [Terraform](https://terraform.io/) 1.3 or higher
+- [OpenTofu](https://opentofu.org) (Terraform replacement)
 
 ### Preparation
 
@@ -34,16 +34,16 @@ The resources created include:
    ```
 3. Install Terraform providers and modules:
    ```
-   terraform init
+   tofu init
    ```
    The first time you run this, you will be asked for the name of an S3 bucket where the terraform state will be persisted. The existing infrastructure uses a bucket named `nurax-terraform`, which is what you should use unless you are setting up a completely separate instance.
 4. Have Terraform check the existing infrastructure against the spec:
    ```
-   terraform plan -out terraform.plan
+   tofu plan -out terraform.plan
    ```
 5. Read over the output to see what changes (if any) Terraform thinks it needs to make to bring things up to spec. If they look correct, have Terraform apply the plan it just saved:
    ```
-   terraform apply terraform.plan
+   tofu apply terraform.plan
    ```
 
 ### Console Access
