@@ -41,7 +41,7 @@ locals {
   container_definitions = [
     for name, config in local.containers: {
       name                = name
-      image               = "ghcr.io/samvera/hyrax-dev:b52aec86445327692844560cff7c278590e15712"
+      image               = "ghcr.io/samvera/hyrax-dev:latest"
       workingDirectory    = var.container_config.working_dir
       cpu                 = var.cpu
       memoryReservation   = var.memory
