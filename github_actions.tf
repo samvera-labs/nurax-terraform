@@ -3,6 +3,6 @@ module "oidc-with-github-actions" {
   version = "0.1.4"
 
   github_org            = "samvera-labs"
-  github_repositories   = ["nurax"]
+  github_repositories   = ["nurax-terraform"]
   iam_role_policy       = "AdministratorAccess"
 }

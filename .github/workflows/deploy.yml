@@ -1,0 +1,27 @@
+name: Deploy Nurax to AWS ECS
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [deploy]
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: us-east-2
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AwsAccount }}:role/GitHubOIDCRole
+          aws-region: ${{ env.AWS_REGION }}
+      - name: "Deploy nurax-dev"
+        run: aws ecs update-service --cluster nurax --service nurax-dev --force-new-deployment
+      - name: "Deploy nurax-pg"
+        run: aws ecs update-service --cluster nurax --service nurax-pg --force-new-deployment
+      - name: "Deploy nurax-f6"
+        run: aws ecs update-service --cluster nurax --service nurax-f6 --force-new-deployment
