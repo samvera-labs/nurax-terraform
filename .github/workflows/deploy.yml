@@ -1,4 +1,5 @@
 name: Deploy Nurax to AWS ECS
+run-name: Deploy ${{ inputs.sha }}
 on:
   workflow_dispatch:
   repository_dispatch:
