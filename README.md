@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project contains the [Terraform](https://terraform.io/) scripts required to build and maintain the AWS infrastructure running the [Nurax](https://github.com/samvera-labs/nurax) demo/test instance for the [Hyrax](https://github.com/samvera/hyrax).
+This project contains the [Terraform](https://terraform.io/) scripts required to build and maintain the AWS infrastructure running the Nurax demo/test instances for the [Hyrax](https://github.com/samvera/hyrax) project using the [hyrax-dev container image](https://github.com/samvera/hyrax/pkgs/container/hyrax-dev). 
 
 The resources created include:
 
