@@ -3,11 +3,17 @@ locals {
     "dev" = {
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-webapp"
+        HYRAX_FLEXIBLE = "true"
+        HYRAX_FLEXIBLE_CLASSES = "AdministrativeSet,CollectionResource,Hyrax::FileSet,GenericWorkResource,Monograph"
+        HYRAX_DISABLE_INCLUDE_METADATA = "true"
       }
     }
     "pg" = {
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-koppie"
+        HYRAX_FLEXIBLE = "true"
+        HYRAX_FLEXIBLE_CLASSES = "Hyrax::AdministrativeSet,CollectionResource,FileSet,GenericWork,Monograph"
+        HYRAX_DISABLE_INCLUDE_METADATA = "true"
       }
     }
     "f6" = {
