@@ -22,6 +22,10 @@ variable "efs_tmp_access_point" {
   type = string
 }
 
+variable "efs_clamav_access_point" {
+  type = string
+}
+
 variable "execution_role_arn" {
   type = string
 }

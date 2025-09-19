@@ -77,6 +77,10 @@ locals {
         {
           "sourceVolume": "nurax-temp",
           "containerPath": "/tmp"
+        },
+        {
+          "sourceVolume": "nurax-clamav",
+          "containerPath": "/var/lib/clamav"
         }
       ]
     }
@@ -110,6 +114,18 @@ resource "aws_ecs_task_definition" "this_task_definition" {
       }
     }
   }
+
+    volume {
+      name = "nurax-clamav"
+      efs_volume_configuration {
+        file_system_id          = var.container_config.data_volume_id
+        # root_directory          = "/tmp/${var.namespace}"
+        transit_encryption      = "ENABLED"
+        authorization_config {
+          access_point_id = var.efs_clamav_access_point
+        }
+      }
+    }
 
   task_role_arn            = var.task_role_arn
   execution_role_arn       = var.execution_role_arn

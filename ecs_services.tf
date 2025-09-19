@@ -102,6 +102,23 @@ resource "aws_efs_access_point" "nurax_tmp" {
   }
 }
 
+resource "aws_efs_access_point" "nurax_clamav" {
+  for_each        = local.nurax_instances
+  file_system_id    = aws_efs_file_system.nurax_data_volume.id
+  posix_user {
+    uid = 0
+    gid = 0
+  }
+  root_directory {
+    path = "/clamav/nurax-${each.key}"
+    creation_info {
+      owner_uid   = 0
+      owner_gid   = 0
+      permissions = "0770"
+    }
+  }
+}
+
 module "nurax_instance" {
   for_each    = local.nurax_instances
   source      = "./modules/nurax_ecs_service"
@@ -141,6 +158,7 @@ module "nurax_instance" {
   extra_environment       = try(each.value.extra_environment, {})
   efs_data_access_point   = aws_efs_access_point.nurax_data[each.key].id
   efs_tmp_access_point    = aws_efs_access_point.nurax_tmp[each.key].id
+  efs_clamav_access_point = aws_efs_access_point.nurax_clamav[each.key].id
 
   security_group_ids    = [
     module.vpc.default_security_group_id,
