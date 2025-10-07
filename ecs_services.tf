@@ -150,7 +150,7 @@ module "nurax_instance" {
 
   acm_certificate_arn     = aws_acm_certificate.nurax_certificate.arn
   cpu                     = 1024
-  memory                  = 2048
+  memory                  = 3072
   dns_name                = each.key
   namespace               = "${var.namespace}-${each.key}"
   private_subnets         = module.vpc.private_subnets

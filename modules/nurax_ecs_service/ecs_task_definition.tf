@@ -12,6 +12,7 @@ locals {
     { name="HONEYBADGER_ENV",             value = var.container_config.honeybadger_environment },
     { name="HYRAX_BRANDING_PATH",         value = "/var/nurax-data/branding" },
     { name="HYRAX_CACHE_PATH",            value = "/var/nurax-data/cache" },
+    { name="HYRAX_CLAMAV",                value = "true" },
     { name="HYRAX_DERIVATIVES_PATH",      value = "/var/nurax-data/derivatives" },
     { name="HYRAX_STORAGE_PATH",          value = "/var/nurax-data/storage" },
     { name="HYRAX_UPLOAD_PATH",           value = "/var/nurax-data/uploads" },
