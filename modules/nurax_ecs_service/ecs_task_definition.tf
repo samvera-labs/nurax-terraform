@@ -25,7 +25,7 @@ locals {
     { name="REDIS_PORT",                  value = var.container_config.redis_port },
     { name="REDIS_URL",                   value = "redis://${var.container_config.redis_host}:${var.container_config.redis_port}/" },
     { name="SECRET_KEY_BASE",             value = random_id.secret_key_base.hex },
-    { name="SIDEKIQ_MODE",                value = "embed" },
+    { name="SIDEKIQ_MODE",                value = "separate" },
     { name="SOLR_HOST",                   value = var.container_config.samvera_stack_hostname },
     { name="SOLR_PORT",                   value = "8983" },
     { name="SOLR_URL",                    value = var.container_config.solr_url }
@@ -35,8 +35,8 @@ locals {
   container_environment = concat(local.common_environment, local.extra_environment)
 
   containers = {
-    webapp = { role = "server", ports = [3000] }
-    # worker = { role = "sidekiq", ports = [] }
+    webapp = { role = "server", ports = [3000], command = ["bundle", "exec", "puma", "-b", "tcp://0.0.0.0:3000"] }
+    worker = { role = "sidekiq", ports = [], command = ["bundle", "exec", "sidekiq"] }
   }
 
   container_definitions = [
@@ -44,8 +44,9 @@ locals {
       name                = name
       image               = "ghcr.io/samvera/hyrax-dev:latest"
       workingDirectory    = var.container_config.working_dir
-      cpu                 = var.cpu
-      memoryReservation   = var.memory
+      command             = config.command
+      cpu                 = var.cpu / 2
+      memoryReservation   = var.memory / 2
       user                = "root"
       essential           = true
       environment         = concat(local.container_environment, [{ name = "CONTAINER_ROLE", value = config.role }])
