@@ -12,7 +12,7 @@ locals {
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-koppie"
         HYRAX_FLEXIBLE = "true"
-        HYRAX_FLEXIBLE_CLASSES = "Hyrax::AdministrativeSet,CollectionResource,FileSet,GenericWork,Monograph"
+        HYRAX_FLEXIBLE_CLASSES = "Hyrax::AdministrativeSet,CollectionResource,FileSet,Hyrax::FileSet,GenericWork,Monograph"
         HYRAX_DISABLE_INCLUDE_METADATA = "true"
       }
     }
