@@ -14,6 +14,7 @@ locals {
         HYRAX_FLEXIBLE = "true"
         HYRAX_FLEXIBLE_CLASSES = "Hyrax::AdministrativeSet,CollectionResource,FileSet,Hyrax::FileSet,GenericWork,Monograph"
         HYRAX_DISABLE_INCLUDE_METADATA = "true"
+        HYRAX_REDIRECTS_ENABLED = "true"
       }
     }
     "f6" = {
