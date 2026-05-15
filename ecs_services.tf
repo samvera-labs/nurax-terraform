@@ -137,7 +137,7 @@ module "nurax_instance" {
     db_pool_size              = 20
     fedora_base_path          = "/${var.namespace}-${each.key}"
     fedora_url                = "${local.fcrepo_base_url}:8080/rest"
-    fedora6_url               = "http://fedoraAdmin:fedoraAdmin@${local.samvera_stack_base_url}:8080/fcrepo/rest"
+    fedora6_url               = "http://fedoraAdmin:${random_string.fcrepo6_password.result}@${local.samvera_stack_base_url}:8080/fcrepo/rest"
     honeybadger_api_key       = var.honeybadger_api_key
     honeybadger_environment   = each.key
     redis_host                = aws_elasticache_cluster.redis[each.key].cache_nodes[0].address

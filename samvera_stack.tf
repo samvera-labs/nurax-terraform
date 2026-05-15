@@ -101,10 +101,10 @@ locals {
     "Dfcrepo.ocfl.s3.prefix" = var.namespace
     "Dfcrepo.pid.minter.count" = "4"
     "Dfcrepo.pid.minter.length" = "2"
-    "Dfcrepo.postgresql.host" = aws_db_instance.db.address
-    "Dfcrepo.postgresql.port" = aws_db_instance.db.port
-    "Dfcrepo.postgresql.username" = local.create_fedora6_database_result.username
-    "Dfcrepo.postgresql.password" = local.create_fedora6_database_result.password
+    "Dfcrepo.db.url" = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/fcrepo6"
+    "Dfcrepo.db.user" = local.create_fedora6_database_result.username
+    "Dfcrepo.db.password" = local.create_fedora6_database_result.password
+    "Dfcrepo.rebuild" = "true"
     "Dfcrepo.storage" = "ocfl-s3"
     "Dfile.encoding" = "UTF-8"
     # Extra values here because they have no =
@@ -196,7 +196,7 @@ resource "aws_ecs_task_definition" "samvera_stack" {
   container_definitions = jsonencode([
     {
       name                = "fcrepo6"
-      image               = "${local.ecs_registry_url}/fcrepo:6.5.1-tomcat9"
+      image               = "${local.ecs_registry_url}/fcrepo:7.0-tomcat10"
       essential           = true
       cpu                 = 1024
       memory              = 2048
@@ -204,6 +204,10 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         {
           name  = "CATALINA_OPTS",
           value = join(" ", [for key, value in local.fedora6_catalina_opts : "-${key}=${value}"])
+        },
+        {
+          name = "FEDORA_ADMIN_PASSWORD",
+          value = random_string.fcrepo6_password.result
         },
         {
           name  = "ENCODED_SOLIDUS_HANDLING",
@@ -226,13 +230,13 @@ resource "aws_ecs_task_definition" "samvera_stack" {
         }
       }
       # For some reason the health check on this never seems to succeed so let's just turn it off for now
-      # healthCheck = {
-      #   command  = ["CMD-SHELL", "wget -q -O /dev/null --method=OPTIONS http://localhost:8080/rest/"]
-      #   interval        = 30
-      #   retries         = 3
-      #   timeout         = 5
-      #   startPeriod     = 300
-      # }
+      healthCheck = {
+        command  = ["CMD-SHELL", "curl --fail-with-body -u fedoraAdmin:${random_string.fcrepo6_password.result} 'http://localhost:8080/fcrepo/rest/fcr:systeminfo'"]
+        interval        = 30
+        retries         = 3
+        timeout         = 5
+        startPeriod     = 300
+      }
     },
     {
       name                = "solr",
