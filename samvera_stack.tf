@@ -104,7 +104,7 @@ locals {
     "Dfcrepo.db.url" = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/fcrepo6"
     "Dfcrepo.db.user" = local.create_fedora6_database_result.username
     "Dfcrepo.db.password" = local.create_fedora6_database_result.password
-    "Dfcrepo.rebuild" = "true"
+    "Dfcrepo.rebuild" = "false"
     "Dfcrepo.storage" = "ocfl-s3"
     "Dfile.encoding" = "UTF-8"
     # Extra values here because they have no =
