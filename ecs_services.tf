@@ -4,8 +4,9 @@ locals {
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-webapp"
         HYRAX_FLEXIBLE = "true"
-        HYRAX_FLEXIBLE_CLASSES = "AdministrativeSet,CollectionResource,Hyrax::FileSet,GenericWorkResource,Monograph"
+        HYRAX_FLEXIBLE_CLASSES = "AdminSetResource,CollectionResource,Hyrax::FileSet,GenericWorkResource,Monograph"
         HYRAX_DISABLE_INCLUDE_METADATA = "true"
+        VALKYRIE_TRANSITION = "true"
       }
     }
     "pg" = {
