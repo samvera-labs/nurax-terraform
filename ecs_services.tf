@@ -7,6 +7,7 @@ locals {
         HYRAX_FLEXIBLE_CLASSES = "AdminSetResource,CollectionResource,Hyrax::FileSet,GenericWorkResource,Monograph"
         HYRAX_DISABLE_INCLUDE_METADATA = "true"
         VALKYRIE_TRANSITION = "true"
+        HYRAX_REDIRECTS_ENABLED = "true"
       }
     }
     "pg" = {
@@ -23,6 +24,7 @@ locals {
         RAILS_ROOT = "/app/samvera/hyrax-koppie"
         VALKYRIE_METADATA_ADAPTER   = "fedora_metadata"
         VALKYRIE_STORAGE_ADAPTER    = "fedora_storage"
+        HYRAX_REDIRECTS_ENABLED     = "true"
       }
     }
   }
