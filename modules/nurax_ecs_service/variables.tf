@@ -14,6 +14,11 @@ variable "dns_name" {
   type = string
 }
 
+variable "dns_cname_target" {
+  description = "Target hostname for the public CNAME record"
+  type        = string
+}
+
 variable "efs_data_access_point" {
   type = string
 }
