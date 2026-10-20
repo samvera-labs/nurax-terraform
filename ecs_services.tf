@@ -1,6 +1,7 @@
 locals {
   nurax_instances = {
     "dev" = {
+      dns_cname_target = "dev-nurax-origin.notch8.cloud"
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-webapp"
         HYRAX_FLEXIBLE = "true"
@@ -11,6 +12,7 @@ locals {
       }
     }
     "pg" = {
+      dns_cname_target = "pg-nurax-origin.notch8.cloud"
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-koppie"
         HYRAX_FLEXIBLE = "true"
@@ -20,6 +22,7 @@ locals {
       }
     }
     "f6" = {
+      dns_cname_target = "f6-nurax-origin.notch8.cloud"
       extra_environment = {
         RAILS_ROOT = "/app/samvera/hyrax-koppie"
         VALKYRIE_METADATA_ADAPTER   = "fedora_metadata"
@@ -155,7 +158,8 @@ module "nurax_instance" {
   acm_certificate_arn     = aws_acm_certificate.nurax_certificate.arn
   cpu                     = 2048
   memory                  = 6144
-  dns_name                = each.key
+  dns_name                = "${each.key}.${local.hosted_subdomain}"
+  dns_cname_target        = each.value.dns_cname_target
   namespace               = "${var.namespace}-${each.key}"
   private_subnets         = module.vpc.private_subnets
   public_subnets          = module.vpc.public_subnets
