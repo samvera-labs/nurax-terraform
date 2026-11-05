@@ -59,7 +59,8 @@ locals {
         }
       }
       healthCheck = {
-        command  = ["CMD-SHELL", "wget -q -O - http://localhost:3000/"]
+        command  = ["CMD-SHELL", "wget -q -O - http://localhost:3000/healthz"]
+        startPeriod = 300
         interval = 60
         retries  = 10
         timeout  = 10
